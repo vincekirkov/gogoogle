@@ -1,50 +1,52 @@
 pipeline {
     agent any
-    tools {
-        go 'go1.14'
-    }
+    
+    /*
     environment {
-        GO114MODULE = 'on'
-        CGO_ENABLED = 0 
-        GOPATH = "${JENKINS_HOME}/jobs/${JOB_NAME}/builds/${BUILD_ID}"
+        CI='true'
     }
-    stages {        
-        stage('Pre Test') {
-            steps {
-                echo 'Installing dependencies'
-                sh 'go version'
-                sh 'go get -u golang.org/x/lint/golint'
-            }
-        }
-        
-        stage('Build') {
-            steps {
-                echo 'Compiling and building'
-                sh 'go build'
-            }
-        }
+    */
 
-        stage('Test') {
-            steps {
-                withEnv(["PATH+GO=${GOPATH}/bin"]){
-                    echo 'Running vetting'
-                    sh 'go vet .'
-                    echo 'Running linting'
-                    sh 'golint .'
-                    echo 'Running test'
-                    sh 'cd test && go test -v'
-                }
-            }
-        }
-        
+    tools {
+        go 'go-1.12.1'
     }
-    post {
-        always {
-            emailext body: "${currentBuild.currentResult}: Job ${env.JOB_NAME} build ${env.BUILD_NUMBER}\n More info at: ${env.BUILD_URL}",
-                recipientProviders: [[$class: 'DevelopersRecipientProvider'], [$class: 'RequesterRecipientProvider']],
-                to: "${params.RECIPIENTS}",
-                subject: "Jenkins Build ${currentBuild.currentResult}: Job ${env.JOB_NAME}"
-            
+
+    options {
+      disableConcurrentBuilds()
+    }
+
+    stages {
+      stage('Test') {
+        steps {
+          // for rice
+          withEnv(["PATH+EXTRA=${HOME}/go/bin"]){
+            sh "/usr/bin/docker-compose -f docker-compose.yml up -d --force-recreate"
+            sh 'until nc -z localhost 3311; do sleep 1; echo "Waiting for DB to come up..."; done'
+            sh 'sleep 10'
+            sh 'cp config-sample.json config.json'
+            sh 'go get github.com/GeertJohan/go.rice/rice'
+            sh 'make build'
+            sh './light-messenger.exec db-exec --script-path ./res/drop_tables.sql'
+            sh './light-messenger.exec db-exec --script-path ./res/create_tables.sql'
+            sh 'make test'
+            // sh "/usr/bin/docker-compose -f docker-compose.yml down -v"
+          }
         }
-    }  
+      }
+    }
+
+    post {
+      always {
+        sh '/usr/bin/docker-compose rm -f -s'
+        sh '/usr/bin/docker-compose down --rmi local --remove-orphans'
+        
+        echo 'email job results'
+        emailext (
+          body: "${currentBuild.currentResult}: Job ${env.JOB_NAME} build ${env.BUILD_NUMBER}\n More info at: ${env.BUILD_URL}",
+          recipientProviders: [[$class: 'DevelopersRecipientProvider'], [$class: 'RequesterRecipientProvider']],
+          subject: "Jenkins Build ${currentBuild.currentResult}: Job ${env.JOB_NAME}, Build ${env.BUILD_NUMBER}",
+          to: "victor.parmar@usb.ch, joshy.cyriac@usb.ch"
+        )
+      }
+    }
 }
