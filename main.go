@@ -29,7 +29,7 @@ func main() {
 	gothic.Store = store
 
 	goth.UseProviders(
-		google.New("665472562966-co6fmd868j6eia81cto4145qt6bfe2ju.apps.googleusercontent.com", "jyyCz5P8hBAxRuRwKgKsOQtt", "http://asambok.com:8080/auth/google/callback", "email", "profile"),
+		google.New("665472562966-co6fmd868j6eia81cto4145qt6bfe2ju.apps.googleusercontent.com", "jyyCz5P8hBAxRuRwKgKsOQtt", "https://asambok.com/auth/google/callback", "email", "profile"),
 	)
 
 	p := pat.New()
