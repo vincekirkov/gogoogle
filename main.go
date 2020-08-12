@@ -7,11 +7,11 @@ import (
 
 	"log"
 
-	"github.com/vincekirkov/goth"
-	"github.com/vincekirkov/goth/gothic"
-	"github.com/vincekirkov/goth/providers/google"
-	"github.com/vincekirkov/pat"
-	"github.com/vincekirkov/sessions"
+	"github.com/gorilla/pat"
+	"github.com/gorilla/sessions"
+	"github.com/markbates/goth"
+	"github.com/markbates/goth/gothic"
+	"github.com/markbates/goth/providers/google"
 )
 
 func main() {
